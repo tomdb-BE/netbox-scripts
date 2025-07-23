@@ -225,9 +225,8 @@ class NetboxPDNSZone:
         if delete:
             self.add_to_delete_list(name)
         else:
-            self.add_to_update_list(name, content, comment)
-            if self.reverse:
-                self.clean_zone(content)           
+            self.add_to_update_list(name, content, comment)            
+            self.clean_zone(content)           
         return True
 
 
