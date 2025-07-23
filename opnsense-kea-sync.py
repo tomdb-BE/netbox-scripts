@@ -491,6 +491,13 @@ class NetboxOpnSenseKeaSyncScript(Script):
         required = False
     )
 
+    opn_kea_ha_sync = BooleanVar(
+        default = False,
+        description = "Triggers a HA sync and Kea service restart on the failover node.",
+        label = "HA Sync",
+        required = False
+    )    
+
     opn_kea_dry_run = BooleanVar(
         default = False,
         description = "Test only, no commits",
@@ -532,6 +539,7 @@ class NetboxOpnSenseKeaSyncScript(Script):
                 "allowed_prefixes": [],
                 "dry_run": False,
                 "force": False,
+                "ha_sync": False,
                 "managed_description": "Netbox managed",
                 "set_hostname": True,
                 "strict": False
@@ -1123,7 +1131,7 @@ class NetboxOpnSenseKeaSyncScript(Script):
             case _:
                 return("FAILURE")
 
-        if self.params.settings["dry_run"]:
+        if not self.params.settings["dry_run"]:
             status = self.params.api.post(
                 command="reconfigure",
                 parameters="",
@@ -1137,5 +1145,25 @@ class NetboxOpnSenseKeaSyncScript(Script):
                 or not status["status"] == "ok"):
                 self.log_failure("Error reconfiguring Kea service")
                 return("FAILURE")
+
+            if self.params.settings["ha_sync"]:
+                self.log_info(
+                    "Syncing and restarting Kea service on HA node")
+                sync_status = self.params.api.post(
+                    command="restart",
+                    parameters="kea-dhcp-v4",
+                    payload={},
+                    module="core",
+                    controller="hasync_status"
+                    )
+
+                if (not sync_status
+                    or not "status" in sync_status
+                    or not sync_status["status"] == "ok"):
+                    self.log_failure(
+                        "Error syncing/restarting Kea service on HA node")
+                    return("FAILURE")
+
+                self.log_success("HA sync and Kea service restart completed")
        
         return("SUCCESS")

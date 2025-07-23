@@ -87,6 +87,7 @@ valid mac address configured.
         ]
     },
     "opn_kea_force": false,
+    "opn_kea_ha_sync": false,
     "opn_kea_set_hostname": true,
     "opn_kea_strict": false,    
     "opn_kea_opt_boot_file_name": "",    
