@@ -618,8 +618,11 @@ class NetboxOpnSenseKeaSyncScript(Script):
                 # Handle subnet updates
                 if object_data["prefix"]:
                     self.action = self.action + "_subnet"
+                    description = self.settings["managed_description"] 
+                    if object_data["description"]:
+                        description += f" {object_data["description"]}"
                     self.get_subnet_settings(
-                        data, object_data["prefix"], object_data["description"])
+                        data, object_data["prefix"], description)
                     self.get_prefixes()
 
                 else:
@@ -749,7 +752,8 @@ class NetboxOpnSenseKeaSyncScript(Script):
                     continue
                 
                 if self.action in [ "add_subnet", "set_subnet"]:
-                    self.subnet_settings["pools"] = self.get_pools(obj_prefix)
+                    self.subnet_settings["subnet4"]["pools"] = \
+                        self.get_pools(obj_prefix)
 
                 if self.action != "del_subnet":                  
                     reservations = self.get_ip_reservations(obj_prefix, ip)
@@ -851,29 +855,27 @@ class NetboxOpnSenseKeaSyncScript(Script):
                 "tftp_server_name": "",
                 "v6_only_preferred": ""
             }
+            for key in option_data:
+                option_key = "opn_kea_opt_" + key
+                if option_key in data and data[option_key]:
+                    option_data[key] = data[option_key]
+       
             self.subnet_settings = {
                 "subnet4": {
-                    "description": self.settings["managed_description"],
+                    "description": description,
                     "match-client-id": "",
                     "next_server": "",
-                    "option_data": option_data,
+                    "option_data": option_data,                   
                     "option_data_autocollect": "",
                     "pools": "",
-                    "subnet": prefix
+                    "subnet": str(prefix)
                 }
             }
-            for key, value in self.subnet_settings.items():
+            for key, value in self.subnet_settings["subnet4"].items():
                 subnet_key = "opn_kea_sub_" + key
-                if subnet_key in data and data[subnet_key]:
-                    if key == "description":
-                        self.subnet_settings[key] = f"{value} {description}"                        
-                    elif key == "option_data":
-                        for o_key in option_data:
-                            option_key = "opn_kea_opt_" + o_key
-                            if option_key in data and data[option_key]:
-                                option_data[key] = data[option_key]
-                    else:                        
-                        self.subnet_settings[key] = data[subnet_key]
+                if subnet_key in data and data[subnet_key]:                   
+                    self.subnet_settings["subnet4"][key] = data[subnet_key]
+                    
             self.settings["allowed_prefixes"] = [str(prefix)]                                    
 
 
